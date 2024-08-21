@@ -187,7 +187,7 @@ echo "Installation completed. Docker and Trivy are installed and configured."
  - Kubernetes Credentials
 
 # Generate Token for jenkins auth in Sonarqube server
-jenkins token = squ_b99533c52405f7707499998c1168557467902ced
+jenkins token = squ_sampletoken
 
 # Add jenkins token as credential on jenkins server -> sonar-token
 # Add Docker credentials named docker-cred on jenkins server
@@ -219,3 +219,30 @@ maven-settings -> Add Nexus server credentials
  - docker -> latest
 
 # Create private Dockerhub repo named bloggingapp
+
+# Verify pipeline can be built successfully
+
+### Terraform Server
+
+Create a Virtual Machine on AWS
+SSH into the VM and Run the command to install Terraform
+sudo apt update
+sudo snap install terraform --classic
+# AWSCLI
+Download AWS CLI on VM
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+aws configure
+
+# Install kubectl on Terraform server
+sudo snap install kubectl --classic
+
+cd EKS_Terraform and endit the files as needed
+
+Run terraform init
+Run terraform validate
+Run terraform plan to view resources to be created
+Run terraform apply --auto-approve
+
+aws eks --region eu-west-2 update-kubeconfig --name ofagbule-cluster
