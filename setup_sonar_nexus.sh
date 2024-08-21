@@ -24,7 +24,7 @@ docker ps
 
 # Wait for Nexus to fully start
 echo "Waiting for Nexus to start..."
-sleep 90
+sleep 160
 
 # Retrieve the Nexus admin password
 echo "Nexus admin password:"

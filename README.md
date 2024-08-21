@@ -62,48 +62,55 @@ By following this guide, you'll set up a fully functional CI/CD pipeline that en
 
    - Create a bash script named `jenkins.sh`:
 
-     ```bash
-     #!/bin/bash
-     set -e
+```bash
+    #!/bin/bash
+set -e
 
-     # Update Cache
-     sudo apt-get update
+# Update Cache
+sudo apt-get update
 
-     # Install Java
-     sudo apt-get install openjdk-17-jre-headless -y
+# Install Java
+sudo apt-get install openjdk-17-jre-headless -y
 
-     # Install Jenkins
-     sudo wget -O /usr/share/keyrings/jenkins-keyring.asc https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
-     echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
+# Install Jenkins
+sudo wget -O /usr/share/keyrings/jenkins-keyring.asc https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
 
-     sudo apt-get update
-     sudo apt-get install jenkins -y
+sudo apt-get update
+sudo apt-get install jenkins -y
 
-     # Enable and start Jenkins service
-     sudo systemctl enable jenkins
-     sudo systemctl start jenkins || sudo systemctl restart jenkins
+# Enable and start Jenkins service
+sudo systemctl enable jenkins
+sudo systemctl start jenkins || sudo systemctl restart jenkins
 
-     # Install Docker
-     sudo apt-get install docker.io -y
+# Install Trivy on Jenkins server
+sudo apt install wget apt-transport-https gnupg lsb-release -y
+wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list > /dev/null
+sudo apt update
+sudo apt install trivy -y
 
-     # Enable and start Docker service
-     sudo systemctl enable docker
-     sudo systemctl start docker || sudo systemctl restart docker
+# Install Docker
+sudo apt-get install docker.io -y
 
-     # Add the current user and Jenkins user to the Docker group
-     sudo usermod -aG docker $USER
-     sudo usermod -aG docker jenkins
+# Enable and start Docker service
+sudo systemctl enable docker
+sudo systemctl start docker || sudo systemctl restart docker
 
-     # Activate Docker group membership
-     newgrp docker
+# Add the current user and Jenkins user to the Docker group
+sudo usermod -aG docker $USER
+sudo usermod -aG docker jenkins
 
-     echo "Installation completed. Docker group membership is now active for both the current user and Jenkins."
-     ```
+# Activate Docker group membership
+newgrp docker
+
+echo "Installation completed. Docker and Trivy are installed and configured."
+ ```
 
    - Make the script executable and run it:
 
      ```bash
-     sudo chmod +x jenkins.sh
+     chmod +x jenkins.sh
      ./jenkins.sh
      ```
 
@@ -115,7 +122,7 @@ By following this guide, you'll set up a fully functional CI/CD pipeline that en
 
 ### SonarQube & Nexus Server
 
-1. **Provision a t2.medium EC2 instance** for SonarQube and Nexus.
+1. **Provision a t2.large EC2 instance** for SonarQube and Nexus.
 
 2. **Install Docker and Run Containers**:
 
@@ -163,3 +170,52 @@ By following this guide, you'll set up a fully functional CI/CD pipeline that en
      sudo chmod +x start_nexus_sonarqube.sh
      ./start_nexus_sonarqube.sh
      ```
+
+# On jenkins server install the following plugins
+ - Eclipse Temurin installer
+ - SonarQube Scanner
+ - Docker
+ - Docker Pipeline
+ - docker-build-step **
+ - Maven Integration
+ - Config File Provider
+ - Nexus Artifact Uploader **
+ - Pipeline Maven Integration
+ - Kubernetes
+ - Kubernetes CLI
+ - Kubernetes Client API Plugin
+ - Kubernetes Credentials
+
+# Generate Token for jenkins auth in Sonarqube server
+jenkins token = squ_b99533c52405f7707499998c1168557467902ced
+
+# Add jenkins token as credential on jenkins server -> sonar-token
+# Add Docker credentials named docker-cred on jenkins server
+# Add Github credentials named github-cred on jenkins server
+# Configure sonarqube server on jenkins via system -> sonar-server
+
+# Add Nexus repo to pom.xml file
+https://github.com/slimboi/FullStack-Blogging-App/blob/main/pom.xml
+
+# Generate a settings.xml file on jenkins server under managed files
+maven-settings -> Add Nexus server credentials 
+<server>
+      <id>maven-releases</id>
+      <username>admin</username>
+      <password>passwd</password>
+</server>
+    
+<server>
+      <id>maven-snapshots</id>
+      <username>admin</username>
+      <password>passwd</password>
+</server>
+
+# Configure the following tools
+ - jdk17
+ - sonar-scanner -> latest version
+ - maven -> maven3.9
+ - dc9.2 -> dependency check **
+ - docker -> latest
+
+# Create private Dockerhub repo named bloggingapp
