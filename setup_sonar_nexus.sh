@@ -11,6 +11,7 @@ sudo systemctl start docker || sudo systemctl restart docker
 # Add the current user to the Docker group
 sudo usermod -aG docker $USER
 
+# Change permission for docker.sock
 sudo chmod 666 /var/run/docker.sock
 
 # Run SonarQube container
