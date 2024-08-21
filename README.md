@@ -1,52 +1,55 @@
-# Production Level CI/CD Pipeline Project Setup Guide
+
+---
+
+# Production-Level CI/CD Pipeline Setup Guide
 
 ## Introduction
 
-In modern software development, Continuous Integration and Continuous Deployment (CI/CD) pipelines are essential for automating the build, test, and deployment processes. This guide walks you through setting up a robust CI/CD pipeline on AWS EC2 instances, covering infrastructure setup, application deployment on an Amazon EKS (Elastic Kubernetes Service) cluster, custom domain assignment, and application monitoring.
+Continuous Integration and Continuous Deployment (CI/CD) pipelines are crucial in modern software development for automating build, test, and deployment processes. This guide details the setup of a robust CI/CD pipeline on AWS EC2 instances, covering everything from infrastructure setup to application monitoring.
 
-### Tools Overview
+### Tools and Technologies
 
-The pipeline utilizes the following industry-standard tools:
+The following tools are used in this pipeline:
 
-- **AWS**: Provisioning virtual machines.
-- **Jenkins**: Automating build, test, and deployment processes.
-- **SonarQube**: Static code analysis for ensuring code quality.
+- **AWS**: Cloud infrastructure for provisioning virtual machines.
+- **Jenkins**: Automating the build, test, and deployment processes.
+- **SonarQube**: Static code analysis to ensure code quality.
 - **Trivy**: Vulnerability scanning for files and Docker images.
-- **Nexus Repository Manager**: Managing artifacts.
-- **Terraform**: Infrastructure as Code for creating the EKS Cluster.
+- **Nexus Repository Manager**: Artifact management.
+- **Terraform**: Infrastructure as Code (IaC) for EKS cluster creation.
 - **Docker**: Containerization for consistency and portability.
-- **Kubernetes**: Orchestrating container deployments.
-- **Prometheus & Grafana**: Monitoring pipeline and application performance.
+- **Kubernetes**: Container orchestration.
+- **Prometheus & Grafana**: Monitoring and performance management.
 
-By following this guide, you'll set up a fully functional CI/CD pipeline that ensures continuous delivery, high code quality, and excellent application performance.
+By following this guide, you will establish a fully functional CI/CD pipeline that ensures continuous delivery, high code quality, and optimal application performance.
 
-## Project Steps
+## Project Steps Overview
 
-1. **Setup Repository**: Initialize your project repository.
-2. **Setup Required Servers**: Configure servers for Jenkins, SonarQube, Nexus, and monitoring tools.
-3. **Configure Tools**: Integrate and configure all tools within the pipeline.
-4. **Create the Pipeline & EKS Cluster**: Establish the CI/CD pipeline and deploy to an EKS Cluster.
-5. **Trigger the Pipeline**: Deploy the application.
-6. **Assign a Custom Domain**: Set up a custom domain for the deployed application.
-7. **Monitor the Application**: Ensure stability and performance using monitoring tools.
+1. **Repository Setup**: Initialize the project repository.
+2. **Server Setup**: Configure servers for Jenkins, SonarQube, Nexus, and monitoring tools.
+3. **Tool Configuration**: Integrate and configure all tools within the pipeline.
+4. **Pipeline & EKS Cluster Creation**: Set up the CI/CD pipeline and deploy it to an EKS cluster.
+5. **Pipeline Execution**: Deploy the application.
+6. **Custom Domain Assignment**: Configure a custom domain for the deployed application.
+7. **Application Monitoring**: Ensure application stability and performance.
 
 ## Repository Setup
 
-1. Clone the repository:
+1. **Clone the repository:**
 
    ```bash
    git clone https://github.com/jaiswaladi246/FullStack-Blogging-App.git
    ```
 
-2. Create a new GitHub repository named `FullStack-Blogging-App`.
+2. **Create a new GitHub repository** named `FullStack-Blogging-App`.
 
-3. Change the remote URL to the new repository:
+3. **Change the remote URL** to point to the new repository:
 
    ```bash
    git remote set-url origin https://github.com/slimboi/FullStack-Blogging-App.git
    ```
 
-4. Verify the remote URL change:
+4. **Verify the remote URL change:**
 
    ```bash
    git remote -v
@@ -58,63 +61,61 @@ By following this guide, you'll set up a fully functional CI/CD pipeline that en
 
 1. **Provision a t2.large EC2 instance** for Jenkins.
 
-2. **Install Jenkins**:
+2. **Install Jenkins** by creating a bash script `jenkins.sh`:
 
-   - Create a bash script named `jenkins.sh`:
+   ```bash
+   #!/bin/bash
+   set -e
 
-```bash
-    #!/bin/bash
-set -e
+   # Update cache
+   sudo apt-get update
 
-# Update Cache
-sudo apt-get update
+   # Install Java
+   sudo apt-get install openjdk-17-jre-headless -y
 
-# Install Java
-sudo apt-get install openjdk-17-jre-headless -y
+   # Install Jenkins
+   sudo wget -O /usr/share/keyrings/jenkins-keyring.asc https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+   echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
 
-# Install Jenkins
-sudo wget -O /usr/share/keyrings/jenkins-keyring.asc https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
-echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
+   sudo apt-get update
+   sudo apt-get install jenkins -y
 
-sudo apt-get update
-sudo apt-get install jenkins -y
+   # Enable and start Jenkins service
+   sudo systemctl enable jenkins
+   sudo systemctl start jenkins || sudo systemctl restart jenkins
 
-# Enable and start Jenkins service
-sudo systemctl enable jenkins
-sudo systemctl start jenkins || sudo systemctl restart jenkins
+   # Install Trivy
+   sudo apt install wget apt-transport-https gnupg lsb-release -y
+   wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+   echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list > /dev/null
+   sudo apt update
+   sudo apt install trivy -y
 
-# Install Trivy on Jenkins server
-sudo apt install wget apt-transport-https gnupg lsb-release -y
-wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
-echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list > /dev/null
-sudo apt update
-sudo apt install trivy -y
+   # Install Docker
+   sudo apt-get install docker.io -y
 
-# Install Docker
-sudo apt-get install docker.io -y
+   # Enable and start Docker service
+   sudo systemctl enable docker
+   sudo systemctl start docker || sudo systemctl restart docker
 
-# Enable and start Docker service
-sudo systemctl enable docker
-sudo systemctl start docker || sudo systemctl restart docker
+   # Add current user and Jenkins to Docker group
+   sudo usermod -aG docker $USER
+   sudo usermod -aG docker jenkins
 
-# Add the current user and Jenkins user to the Docker group
-sudo usermod -aG docker $USER
-sudo usermod -aG docker jenkins
+   # Activate Docker group membership
+   newgrp docker
 
-# Activate Docker group membership
-newgrp docker
+   echo "Installation complete. Docker and Trivy are installed and configured."
+   ```
 
-echo "Installation completed. Docker and Trivy are installed and configured."
- ```
-
-   - Make the script executable and run it:
+   - **Run the script:**
 
      ```bash
      chmod +x jenkins.sh
      ./jenkins.sh
      ```
 
-3. Access Jenkins' initial admin password:
+3. **Retrieve Jenkins' initial admin password:**
 
    ```bash
    sudo cat /var/lib/jenkins/secrets/initialAdminPassword
@@ -124,9 +125,9 @@ echo "Installation completed. Docker and Trivy are installed and configured."
 
 1. **Provision a t2.large EC2 instance** for SonarQube and Nexus.
 
-2. **Install Docker and Run Containers**:
+2. **Install Docker and run containers**:
 
-   - Create a setup script `setup_docker_nexus.sh`:
+   - Create a script `setup_docker_nexus.sh`:
 
      ```bash
      #!/bin/bash
@@ -141,16 +142,16 @@ echo "Installation completed. Docker and Trivy are installed and configured."
      echo "Docker installed. Please log out and back in, or reboot your system to apply Docker group changes."
      ```
 
-   - Make the script executable and run it:
+   - **Run the script:**
 
      ```bash
      sudo chmod +x setup_docker_nexus.sh
      ./setup_docker_nexus.sh
      ```
 
-3. **Run SonarQube and Nexus Containers**:
+3. **Run SonarQube and Nexus containers**:
 
-   - After logging back in, create and run the `start_nexus_sonarqube.sh` script:
+   - Create and run the script `start_nexus_sonarqube.sh`:
 
      ```bash
      #!/bin/bash
@@ -164,85 +165,117 @@ echo "Installation completed. Docker and Trivy are installed and configured."
      docker exec -i nexus cat sonatype-work/nexus3/admin.password
      ```
 
-   - Make the script executable and run it:
+   - **Run the script:**
 
      ```bash
      sudo chmod +x start_nexus_sonarqube.sh
      ./start_nexus_sonarqube.sh
      ```
 
-# On jenkins server install the following plugins
- - Eclipse Temurin installer
- - SonarQube Scanner
- - Docker
- - Docker Pipeline
- - docker-build-step **
- - Maven Integration
- - Config File Provider
- - Nexus Artifact Uploader **
- - Pipeline Maven Integration
- - Kubernetes
- - Kubernetes CLI
- - Kubernetes Client API Plugin
- - Kubernetes Credentials
+### Jenkins Plugin Installation
 
-# Generate Token for jenkins auth in Sonarqube server
-jenkins token = squ_sampletoken
+Install the following plugins on the Jenkins server:
 
-# Add jenkins token as credential on jenkins server -> sonar-token
-# Add Docker credentials named docker-cred on jenkins server
-# Add Github credentials named github-cred on jenkins server
-# Configure sonarqube server on jenkins via system -> sonar-server
+- Eclipse Temurin installer
+- SonarQube Scanner
+- Docker
+- Docker Pipeline
+- Docker Build Step
+- Maven Integration
+- Config File Provider
+- Nexus Artifact Uploader
+- Pipeline Maven Integration
+- Kubernetes
+- Kubernetes CLI
+- Kubernetes Client API Plugin
+- Kubernetes Credentials
 
-# Add Nexus repo to pom.xml file
-https://github.com/slimboi/FullStack-Blogging-App/blob/main/pom.xml
+### Jenkins Configuration
 
-# Generate a settings.xml file on jenkins server under managed files
-maven-settings -> Add Nexus server credentials 
-<server>
-      <id>maven-releases</id>
-      <username>admin</username>
-      <password>passwd</password>
-</server>
-    
-<server>
-      <id>maven-snapshots</id>
-      <username>admin</username>
-      <password>passwd</password>
-</server>
+1. **Generate a Jenkins token** for SonarQube authentication.
+   - Example token: `squ_sampletoken`
 
-# Configure the following tools
- - jdk17
- - sonar-scanner -> latest version
- - maven -> maven3.9
- - dc9.2 -> dependency check **
- - docker -> latest
+2. **Add credentials** on the Jenkins server:
+   - **SonarQube**: Token named `sonar-token`
+   - **Docker**: Credentials named `docker-cred`
+   - **GitHub**: Credentials named `github-cred`
 
-# Create private Dockerhub repo named bloggingapp
+3. **Configure SonarQube server** on Jenkins via `Manage Jenkins -> Configure System -> SonarQube Servers`.
 
-# Verify pipeline can be built successfully
+4. **Add Nexus repo details** to the `pom.xml` file:
+   - Example: [pom.xml](https://github.com/slimboi/FullStack-Blogging-App/blob/main/pom.xml)
 
-### Terraform Server
+5. **Generate a `settings.xml` file** on Jenkins under `Manage Jenkins -> Managed files -> Add a new Maven settings file`.
+   - Include Nexus server credentials:
 
-Create a Virtual Machine on AWS
-SSH into the VM and Run the command to install Terraform
-sudo apt update
-sudo snap install terraform --classic
-# AWSCLI
-Download AWS CLI on VM
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-sudo ./aws/install
-aws configure
+     ```xml
+     <server>
+         <id>maven-releases</id>
+         <username>admin</username>
+         <password>passwd</password>
+     </server>
+     
+     <server>
+         <id>maven-snapshots</id>
+         <username>admin</username>
+         <password>passwd</password>
+     </server>
+     ```
 
-# Install kubectl on Terraform server
-sudo snap install kubectl --classic
+6. **Configure Tools**:
+   - JDK 17
+   - Sonar Scanner (latest version)
+   - Maven 3.9
+   - Dependency Check 9.2
+   - Docker (latest version)
 
-cd EKS_Terraform and endit the files as needed
+### Docker Hub
 
-Run terraform init
-Run terraform validate
-Run terraform plan to view resources to be created
-Run terraform apply --auto-approve
+Create a private Docker Hub repository named `bloggingapp`.
 
-aws eks --region eu-west-2 update-kubeconfig --name ofagbule-cluster
+### Pipeline Verification
+
+Ensure that the pipeline can be successfully built and executed.
+
+## Terraform Server Setup
+
+1. **Create a Virtual Machine** on AWS.
+2. **SSH into the VM** and install Terraform:
+
+   ```bash
+   sudo apt update
+   sudo snap install terraform --classic
+   ```
+
+3. **Install AWS CLI**:
+
+   ```bash
+   curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+   unzip awscliv2.zip
+   sudo ./aws/install
+   aws configure
+   ```
+
+4. **Install `kubectl`**:
+
+   ```bash
+   sudo snap install kubectl --classic
+   ```
+
+5. **Set up EKS with Terraform**:
+
+   - Navigate to the `EKS_Terraform` directory.
+   - Run the following commands:
+
+     ```bash
+     terraform init
+     terraform validate
+     terraform plan
+     terraform apply --auto-approve
+     ```
+
+6. **Update the kubeconfig**:
+
+   ```bash
+   aws eks --region eu-west-2 update-kubeconfig --name ofagbule-cluster
+   ```
