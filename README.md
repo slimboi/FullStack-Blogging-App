@@ -61,7 +61,7 @@ By following this guide, you will establish a fully functional CI/CD pipeline th
 
 1. **Provision a t2.large EC2 instance** for Jenkins.
 
-2. **Install Jenkins** by creating a bash script `setup_jenkins_trivy_docker.sh` and add the contents in the [setup_jenkins_trivy_docker.sh file](https://github.com/slimboi/FullStack-Blogging-App/blob/main/setup_sonar_nexus.sh)
+2. **Install Jenkins** by creating a bash script `setup_jenkins_trivy_docker.sh` and add the contents in the [setup_jenkins_trivy_docker.sh file](https://github.com/slimboi/FullStack-Blogging-App/blob/main/setup_jenkins_trivy_docker.sh)
 
 
    - **Run the script:**
